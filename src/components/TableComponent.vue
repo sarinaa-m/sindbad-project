@@ -131,30 +131,26 @@ export default defineComponent({
 
       // Filter rows based on search term
       if (searchValue.value) {
-        filteredData = filteredData.filter((row) =>
-          Object.values(row).some((value) => {
-        if (typeof value === 'string') {
-          const normalizedValue = value
-            .toLowerCase()
-            .normalize('NFD')
-            .replace(/[\u0300-\u036f]/g, '')
-            .replace(/\s/g, '')
-            .replace(/[()]/g, '');
-          const normalizedSearchValue = searchValue.value
-            .toLowerCase()
-            .normalize('NFD')
-            .replace(/[\u0300-\u036f]/g, '')
-            .replace(/\s/g, '')
-            .replace(/[()]/g, '');
-          const specialCharRegex = /[!@#$%^&*(),.?":{}|<>]/g;
-          return (
-            normalizedValue.includes(normalizedSearchValue) ||
-            specialCharRegex.test(normalizedSearchValue)
-          );
-        }
-        return false;
-          })
-        );
+        const normalizedSearchValue = normalizeString(searchValue.value);
+
+        filteredData = filteredData.filter((row) => {
+          return Object.values(row).some((value) => {
+            if (typeof value === 'string') {
+              const normalizedValue = normalizeString(value);
+              return normalizedValue.includes(normalizedSearchValue);
+            }
+            return false;
+          });
+        });
+      }
+
+      function normalizeString(str: any) {
+        return str
+          .toLowerCase()
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '')
+          .replace(/\s/g, '')
+          .replace(/[!@#$%^&*(),.?":{}|<>\-+]/g, '');
       }
 
       // Sort rows if a sort key is set
@@ -221,12 +217,11 @@ export default defineComponent({
   table-layout: fixed;
   margin-bottom: 20px;
 }
-.table-header{
+.table-header {
   background-color: var(--dark-blue);
-  color:var(--white)
+  color: var(--white);
 }
 .table tr {
- 
   border: 1px solid #ddd;
   padding: 0.35em;
 }
