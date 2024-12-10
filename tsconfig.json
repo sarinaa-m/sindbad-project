@@ -1,23 +1,49 @@
+// {
+//   "compilerOptions": {
+//     "moduleResolution": "node",
+//     "strict": true,
+//     "esModuleInterop": true,
+//     "skipLibCheck": true,
+//     "baseUrl": ".",
+//     "paths": {
+//       "@/*": [
+//         "src/*"
+//       ]
+//     },
+//     "target": "es5",
+//     "module": "ES2020",
+//     "jsx": "preserve"
+//   },
+//   "include": [
+//     "src/**/*.ts",
+//     "src/**/*.d.ts",
+//     "src/**/*.tsx",
+//     "src/**/*.vue"
+//   ]
+// }
 {
   "compilerOptions": {
-    "moduleResolution": "node",
+    "target": "esnext",
+    "module": "esnext",
     "strict": true,
+    "jsx": "preserve",
+    "importHelpers": true,
+    "moduleResolution": "node",
     "esModuleInterop": true,
-    "skipLibCheck": true,
+    "allowSyntheticDefaultImports": true,
+    "sourceMap": true,
     "baseUrl": ".",
-    "paths": {
-      "@/*": [
-        "src/*"
-      ]
-    },
-    "target": "es5",
-    "module": "ES2020",
-    "jsx": "preserve"
+   
+    "resolveJsonModule": true
   },
   "include": [
     "src/**/*.ts",
     "src/**/*.d.ts",
-    "src/**/*.tsx",
-    "src/**/*.vue"
+    "src/**/*.vue",
+    "tests/**/*.ts",
+    "tests/**/*.vue"
+  ],
+  "exclude": [
+    "node_modules"
   ]
 }
