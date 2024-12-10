@@ -16,7 +16,7 @@
             v-for="column in columns"
             :key="column.key"
             @click="toggleSort(column.key)"
-            class="sortable"
+            class="sortable table-header"
             scope="col"
           >
             {{ column.label }}
@@ -132,19 +132,28 @@ export default defineComponent({
       // Filter rows based on search term
       if (searchValue.value) {
         filteredData = filteredData.filter((row) =>
-          Object.values(row).some((value) =>
-            value
-              .toString()
-              .toLowerCase()
-              .normalize('NFD')
-              .replace(/[\u0300-\u036f]/g, '')
-              .includes(
-                searchValue.value
-                  .toLowerCase()
-                  .normalize('NFD')
-                  .replace(/[\u0300-\u036f]/g, ''),
-              ),
-          ),
+          Object.values(row).some((value) => {
+        if (typeof value === 'string') {
+          const normalizedValue = value
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/\s/g, '')
+            .replace(/[()]/g, '');
+          const normalizedSearchValue = searchValue.value
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/\s/g, '')
+            .replace(/[()]/g, '');
+          const specialCharRegex = /[!@#$%^&*(),.?":{}|<>]/g;
+          return (
+            normalizedValue.includes(normalizedSearchValue) ||
+            specialCharRegex.test(normalizedSearchValue)
+          );
+        }
+        return false;
+          })
         );
       }
 
@@ -212,10 +221,17 @@ export default defineComponent({
   table-layout: fixed;
   margin-bottom: 20px;
 }
+.table-header{
+  background-color: var(--dark-blue);
+  color:var(--white)
+}
 .table tr {
-  background-color: #f8f8f8;
+ 
   border: 1px solid #ddd;
   padding: 0.35em;
+}
+.table tr:nth-child(odd) {
+  background-color: #f8f8f8;
 }
 
 .table th,
