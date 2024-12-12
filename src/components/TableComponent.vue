@@ -1,12 +1,33 @@
 <template>
   <div class="table-container">
     <!-- Search Input -->
-    <input
-      v-model="searchValue"
-      type="text"
-      placeholder="Search..."
-      class="search-input w-full bg-transparent placeholder:text-slate-400 text-slate-700 text-sm border border-slate-200 rounded-md px-3 py-2 transition duration-300 ease focus:outline-none focus:border-slate-400 hover:border-slate-300 shadow-sm focus:shadow"
-    />
+    <div class="flex items-center justify-between mb-5">
+      <input
+        v-model="searchValue"
+        type="text"
+        placeholder="Search (Full Name, Phone Number, Status)"
+        class="search-input w-full bg-transparent placeholder:text-slate-400 text-slate-700 text-sm border border-slate-200 rounded-md px-3 py-2 transition duration-300 ease focus:outline-none focus:border-slate-400 hover:border-slate-300 shadow-sm focus:shadow"
+      />
+      <!-- Pagination Controls -->
+      <div class="flex items-center">
+        <button
+          @click="goToPage(currentPage - 1)"
+          class="bg-gray-300 hover:bg-gray-400 text-gray-800 py-1 px-3 rounded-l border-r"
+          :class="{ disabled: currentPage === 1 }"
+        >
+          <
+        </button>
+
+        <button
+          @click="goToPage(currentPage + 1)"
+          class="bg-gray-300 hover:bg-gray-400 text-gray-800 py-1 px-3 rounded-r"
+          :class="{ disabled: currentPage === totalPages }"
+        >
+          >
+        </button>
+        <span class="mx-3"> {{ currentPage }} / {{ totalPages }}</span>
+      </div>
+    </div>
 
     <!-- Table -->
     <table class="table">
@@ -15,13 +36,24 @@
           <th
             v-for="column in columns"
             :key="column.key"
-            @click="column.key === 'submission_datetime' ? toggleSort(column.key) : null"
+            @click="
+              column.key === 'submission_datetime'
+                ? toggleSort(column.key)
+                : null
+            "
             class="sortable table-header"
+            :class="['table-column-' + column.key]"
             scope="col"
-            >
+          >
             {{ column.label }}
             <span v-if="column.key === 'submission_datetime'">
-              {{ sortKey === 'submission_datetime' ? (sortOrder === 'asc' ? '▲' : '▼') : '' }}
+              {{
+                sortKey === 'submission_datetime'
+                  ? sortOrder === 'asc'
+                    ? '▲'
+                    : '▼'
+                  : ''
+              }}
             </span>
           </th>
         </tr>
@@ -39,32 +71,13 @@
         </tr>
       </tbody>
     </table>
-
-    <!-- Pagination Controls -->
-    <div class="flex items-center">
-      <button
-        @click="goToPage(currentPage - 1)"
-        class="bg-gray-300 hover:bg-gray-400 text-gray-800 py-1 px-3 rounded-l"
-        :class="{ disabled: currentPage === 1 }"
-      >
-        Previous
-      </button>
-
-      <button
-        @click="goToPage(currentPage + 1)"
-        class="bg-gray-300 hover:bg-gray-400 text-gray-800 py-1 px-3 rounded-r"
-        :class="{ disabled: currentPage === totalPages }"
-      >
-        Next
-      </button>
-      <span class="mx-3">Page {{ currentPage }} of {{ totalPages }}</span>
-    </div>
   </div>
 </template>
 
 <script lang="ts">
 import { defineComponent, ref, computed, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+
 interface Column {
   label: string;
   key: string;
@@ -95,6 +108,7 @@ export default defineComponent({
     const router = useRouter();
 
     const searchValue = ref<string>('');
+    const searchValueDebounced = ref<string>('');
     const sortKey = ref<string | null>(null);
     const sortOrder = ref<'asc' | 'desc' | null>(null);
 
@@ -108,6 +122,20 @@ export default defineComponent({
         currentPage.value = parseInt(newPage as string) || 1;
       },
     );
+
+    // Debouncing logic using setTimeout
+    let debounceTimeout: ReturnType<typeof setTimeout>;
+
+    const debouncedSearch = (newSearchValue: string) => {
+      clearTimeout(debounceTimeout);
+      debounceTimeout = setTimeout(() => {
+        searchValueDebounced.value = newSearchValue;
+      }, 500);
+    };
+
+    watch(searchValue, (newSearchValue) => {
+      debouncedSearch(newSearchValue);
+    });
 
     const toggleSort = (key: string) => {
       if (sortKey.value === key) {
@@ -124,17 +152,28 @@ export default defineComponent({
         sortOrder.value = 'asc';
       }
     };
+    watch(searchValueDebounced, () => {
+      resetQuery();
+    });
 
+    const resetQuery = () => {
+      router.replace({ query: { ...route.query, page: null } });
+    };
     const filteredAndSortedData = computed(() => {
       let filteredData = props.data;
       currentPage.value = 1;
 
-      // Filter rows based on search term
-      if (searchValue.value) {
-        const normalizedSearchValue = normalizeString(searchValue.value);
+      const searchColumns = ['first_name', 'phone_number', 'provider_message'];
+      // Filter rows based on the debounced search term
+      if (searchValueDebounced.value) {
+        const normalizedSearchValue = normalizeString(
+          searchValueDebounced.value,
+        );
 
         filteredData = filteredData.filter((row) => {
-          return Object.values(row).some((value) => {
+          return searchColumns.some((key) => {
+            const value = row[key];
+            debugger;
             if (typeof value === 'string') {
               const normalizedValue = normalizeString(value);
               return normalizedValue.includes(normalizedSearchValue);
@@ -144,17 +183,7 @@ export default defineComponent({
         });
       }
 
-      function normalizeString(str: any) {
-        return str
-          .toLowerCase()
-          .normalize('NFD')
-          .replace(/[\u0300-\u036f]/g, '')
-          .replace(/\s/g, '')
-          .replace(/[!@#$%^&*(),.?":{}|<>\-+]/g, '');
-      }
-
       // Sort rows if a sort key is set
-
       if (sortKey.value === 'submission_datetime') {
         filteredData = [...filteredData].sort((a, b) => {
           const valA = new Date(a[sortKey.value as string]);
@@ -186,8 +215,19 @@ export default defineComponent({
       }
     };
 
+    // Normalize string for case insensitive search
+    function normalizeString(str: any) {
+      return str
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/\s/g, '')
+        .replace(/[!@#$%^&*(),.?":{}|<>\-+]/g, '');
+    }
+
     return {
       searchValue,
+      searchValueDebounced,
       sortKey,
       sortOrder,
       currentPage,
@@ -207,7 +247,7 @@ export default defineComponent({
 .search-input {
   margin-bottom: 10px;
   padding: 5px;
-  width: 100%;
+  width: 30%;
 }
 .table {
   border: 1px solid #ccc;
@@ -233,19 +273,19 @@ export default defineComponent({
 .table th,
 .table td {
   padding: 0.625em;
-  text-align: center;
+  text-align: left;
 }
 
 .table th {
   font-size: 0.85em;
   letter-spacing: 0.1em;
-  text-transform: uppercase;
 }
 
 .disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
+
 @media screen and (max-width: 768px) {
   .table {
     border: 0;
@@ -276,10 +316,6 @@ export default defineComponent({
   }
 
   .table td::before {
-    /*
-    * aria-label has no advantage, it won't be read inside a table
-    content: attr(aria-label);
-    */
     content: attr(data-label);
     float: left;
     font-weight: bold;
@@ -292,7 +328,7 @@ export default defineComponent({
 }
 @media screen and (min-width: 769px) {
   .table .table-item {
-    max-width: 100px;
+    max-width: 120px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;

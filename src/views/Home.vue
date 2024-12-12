@@ -17,7 +17,7 @@ export default defineComponent({
       { label: 'ID', key: 'id' },
       { label: 'Full Name', key: 'first_name' },
       { label: 'Order', key: 'order_type' },
-      { label: 'Created Date', key: 'submission_datetime' },
+      { label: 'Submission Date', key: 'submission_datetime' },
       { label: 'Phone Number', key: 'phone_number' },
       { label: 'Status', key: 'provider_message' },
     ];
