@@ -15,13 +15,13 @@
           <th
             v-for="column in columns"
             :key="column.key"
-            @click="toggleSort(column.key)"
+            @click="column.key === 'submission_datetime' ? toggleSort(column.key) : null"
             class="sortable table-header"
             scope="col"
-          >
+            >
             {{ column.label }}
-            <span v-if="sortKey === column.key">
-              {{ sortOrder === 'asc' ? '▲' : '▼' }}
+            <span v-if="column.key === 'submission_datetime'">
+              {{ sortKey === 'submission_datetime' ? (sortOrder === 'asc' ? '▲' : '▼') : '' }}
             </span>
           </th>
         </tr>
@@ -154,10 +154,11 @@ export default defineComponent({
       }
 
       // Sort rows if a sort key is set
-      if (sortKey.value) {
+
+      if (sortKey.value === 'submission_datetime') {
         filteredData = [...filteredData].sort((a, b) => {
-          const valA = a[sortKey.value as string];
-          const valB = b[sortKey.value as string];
+          const valA = new Date(a[sortKey.value as string]);
+          const valB = new Date(b[sortKey.value as string]);
 
           if (valA === valB) return 0;
 
