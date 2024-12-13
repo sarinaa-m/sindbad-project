@@ -71,7 +71,7 @@
 </template>
 
 <script lang="ts">
-  import { defineComponent, ref, computed, watch, h, onMounted } from 'vue';
+  import { defineComponent, ref, computed, watch, onMounted } from 'vue';
   import { useRoute, useRouter } from 'vue-router';
   import dayjs from 'dayjs';
   import { HeaderName, ProviderMessageType, StatusType } from '../enums';
@@ -97,9 +97,10 @@
       },
       pageSize: {
         type: Number,
-        default: 5, // Default number of rows per page
+        required: true,
       },
     },
+
     setup(props) {
       const route = useRoute();
       const router = useRouter();
@@ -112,22 +113,23 @@
       const currentPage = ref<number>(
         parseInt(route?.query?.page as string) || 1,
       );
-      onMounted(() => {
-      // Initialize search value from query parameters
-      if (route.query.search) {
-        searchValue.value = route.query.search as string;
-        searchValueDebounced.value = route.query.search as string;
-      }
+      let debounceTimeout: ReturnType<typeof setTimeout>;
 
-      // Initialize multi-sort from query parameters
-      if (route.query.sort) {
-        const sortParams = (route.query.sort as string).split(',');
-        multiSort.value = sortParams.map((param) => {
-          const [key, order] = param.split(':');
-          return { key, order: order as 'asc' | 'desc' };
-        });
-      }
-    });
+      onMounted(() => {
+        if (route.query.search) {
+          searchValue.value = route.query.search as string;
+          searchValueDebounced.value = route.query.search as string;
+        }
+
+        if (route.query.sort) {
+          const sortParams = (route.query.sort as string).split(',');
+          multiSort.value = sortParams.map((param) => {
+            const [key, order] = param.split(':');
+            return { key, order: order as 'asc' | 'desc' };
+          });
+        }
+      });
+
       watch(
         () => route?.query?.page,
         (newPage) => {
@@ -135,144 +137,25 @@
         },
       );
 
-      // Debouncing logic using setTimeout
-      let debounceTimeout: ReturnType<typeof setTimeout>;
-
-      const debouncedSearch = (newSearchValue: string) => {
-        clearTimeout(debounceTimeout);
-        debounceTimeout = setTimeout(() => {
-          searchValueDebounced.value = newSearchValue;
-        }, 500);
-      };
-
       watch(searchValue, (newSearchValue) => {
+        currentPage.value = 1;
         debouncedSearch(newSearchValue);
       });
 
-      const toggleMultiSort = (key: string) => {
-        const existingSortIndex = multiSort.value.findIndex(
-          (sort) => sort.key === key,
-        );
-
-        if (existingSortIndex !== -1) {
-          // Column is already sorted, toggle between ascending, descending, and removing the sort
-          const existingSort = multiSort.value[existingSortIndex];
-          if (existingSort.order === 'asc') {
-            multiSort.value[existingSortIndex] = { key, order: 'desc' };
-          } else {
-            // Remove the sort rule completely
-            multiSort.value.splice(existingSortIndex, 1);
-          }
-        } else {
-          // Add a new sorting rule for the column
-          multiSort.value.push({ key, order: 'asc' });
-        }
-        updateQueryParams();
-
-      };
-      watch(searchValueDebounced, () => {
-        resetQuery();
-      });
-
-      const resetQuery = () => {
+      const updateQueryParams = () => {
+        const sortParams = multiSort.value
+          .map((sort) => `${sort.key}:${sort.order}`)
+          .join(',');
         router.replace({
           query: {
             ...route.query,
-            page: null,
+            search: searchValue.value,
+            sort: sortParams,
+            page: currentPage.value.toString(),
           },
         });
       };
-      const updateQueryParams = () => {
-      const sortParams = multiSort.value
-        .map((sort) => `${sort.key}:${sort.order}`)
-        .join(',');
-      router.replace({
-        query: {
-          ...route.query,
-          page: currentPage.value.toString(),
-          search: searchValueDebounced.value,
-          sort: sortParams,
-        },
-      });
-    };
-      const parseValue = (value: any) => {
-        const date = Date.parse(value);
-        if (!isNaN(date)) return date;
 
-        const number = parseFloat(value.replace(/[^0-9.]/g, '')); // Handle phone numbers
-        if (!isNaN(number)) return number;
-
-        return value?.toString().toLowerCase() || ''; // Fallback for strings
-      };
-      const filteredAndSortedData = computed(() => {
-        let filteredData = props.data;
-        currentPage.value = 1;
-
-        const searchColumns = [
-          'first_name',
-          'phone_number',
-          'provider_message',
-        ];
-        // Filter rows based on the debounced search value
-        if (searchValueDebounced.value) {
-          const normalizedSearchValue = normalizeString(
-            searchValueDebounced.value,
-          );
-
-          filteredData = filteredData.filter((row) => {
-            return searchColumns.some((key) => {
-              const value = row[key];
-              if (typeof value === 'string') {
-                const normalizedValue = normalizeString(value);
-                return normalizedValue.includes(normalizedSearchValue);
-              }
-              return false;
-            });
-          });
-        }
-
-        // Sort rows if a sort key is set
-        if (multiSort.value.length > 0) {
-          filteredData = [...filteredData].sort((a, b) => {
-            for (const { key, order } of multiSort.value) {
-              const valA = parseValue(a[key]);
-              const valB = parseValue(b[key]);
-              const sortDirection = order === 'asc' ? 1 : -1;
-
-              if (valA > valB) return sortDirection;
-              if (valA < valB) return -sortDirection;
-              // If values are equal, continue to the next sorting rule
-            }
-            return 0; // All specified sorting keys have equal values
-          });
-        }
-        updateQueryParams();
-
-        return filteredData;
-      });
-
-      const totalPages = computed(() =>
-        Math.ceil(filteredAndSortedData.value.length / props.pageSize),
-      );
-
-      const paginatedData = computed(() => {
-        const start = (currentPage.value - 1) * props.pageSize;
-        const end = start + props.pageSize;
-        return filteredAndSortedData?.value?.slice(start, end);
-      });
-
-      const goToPage = (page: number) => {
-        if (page >= 1 && page <= totalPages.value) {
-          router.push({
-            query: {
-              ...route?.query,
-              page: page.toString(),
-            },
-          });
-        }
-      };
-
-      // Normalize string for case insensitive search
       function normalizeString(str: any) {
         return str
           .toLowerCase()
@@ -281,6 +164,7 @@
           .replace(/\s/g, '')
           .replace(/[!@#$%^&*(),.?":{}|<>\-+]/g, '');
       }
+
       const formatValue = (value: any, key: string) => {
         if (key === HeaderName.SUBMISSION_DATE) {
           return dayjs(value).format('YYYY MMM D  HH:mm');
@@ -317,6 +201,96 @@
           return value;
         }
       };
+
+      const debouncedSearch = (newSearchValue: string) => {
+        clearTimeout(debounceTimeout);
+        debounceTimeout = setTimeout(() => {
+          searchValueDebounced.value = newSearchValue;
+        }, 500);
+      };
+
+      const toggleMultiSort = (key: string) => {
+        const existingSortIndex = multiSort.value.findIndex(
+          (sort) => sort.key === key,
+        );
+
+        if (existingSortIndex !== -1) {
+          const existingSort = multiSort.value[existingSortIndex];
+          if (existingSort.order === 'asc') {
+            multiSort.value[existingSortIndex] = { key, order: 'desc' };
+          } else {
+            multiSort.value.splice(existingSortIndex, 1);
+          }
+        } else {
+          multiSort.value.push({ key, order: 'asc' });
+        }
+        updateQueryParams();
+      };
+
+      const filteredAndSortedData = computed(() => {
+        let filteredData = props.data;
+
+        const searchColumns = [
+          'first_name',
+          'phone_number',
+          'provider_message',
+        ];
+
+        if (searchValueDebounced.value) {
+          const normalizedSearchValue = normalizeString(
+            searchValueDebounced.value,
+          );
+          filteredData = filteredData.filter((row) => {
+            return searchColumns.some((key) => {
+              const value = row[key];
+              if (typeof value === 'string') {
+                const normalizedValue = normalizeString(value);
+                return normalizedValue.includes(normalizedSearchValue);
+              }
+              return false;
+            });
+          });
+        }
+
+        if (multiSort.value.length > 0) {
+          filteredData = [...filteredData].sort((a, b) => {
+            for (const { key, order } of multiSort.value) {
+              const valA = a[key];
+              const valB = b[key];
+              const sortDirection = order === 'asc' ? 1 : -1;
+
+              if (valA > valB) return sortDirection;
+              if (valA < valB) return -sortDirection;
+            }
+            return 0;
+          });
+        }
+        updateQueryParams();
+
+        return filteredData;
+      });
+
+      const totalPages = computed(() =>
+        Math.ceil(filteredAndSortedData.value.length / props.pageSize),
+      );
+
+      const paginatedData = computed(() => {
+        const start = (currentPage.value - 1) * props.pageSize;
+        const end = start + props.pageSize;
+        return filteredAndSortedData?.value?.slice(start, end);
+      });
+
+      const goToPage = (page: number) => {
+        if (page >= 1 && page <= totalPages.value) {
+          router.push({
+            query: {
+              ...route?.query,
+              page: page.toString(),
+            },
+          });
+        }
+      };
+
       return {
         searchValue,
         searchValueDebounced,

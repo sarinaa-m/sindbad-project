@@ -3,6 +3,7 @@ export const ProviderMessageType = [
     { value: "ok", label: "status: OK - the reservation is confirmed, and your booking is now secure." },
     { value: "success", label: "success - your reservation has been processed." },
     { value: "pending", label: "pending - Your reservation is pending." },
+    { value: "pending", label: "your request is pending. You will be notified once it's confirmed." },
     { value: "retry", label: "reservation failed. Try again later." },
     { value: "cancelled", label: "cancelled - Your reservation has been cancelled." },
     { value: "userCancellation", label: "the reservation was cancelled as per your request." },
