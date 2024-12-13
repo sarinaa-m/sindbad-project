@@ -7259,8 +7259,8 @@
     {
       "id": 908,
       "first_name": "Javier Rumble",
-      "order_type": "Hotel",
-      "submission_datetime": "2020-08-12 04:26:28",
+      "order_type": "Flight",
+      "submission_datetime": "2020-08-12 04:04:04",
       "phone_number": "+7 (466) 644-8583",
       "provider_message": "status: failed - The reservation is currently unavailable."
     },
@@ -7996,7 +7996,7 @@
       "id": 1000,
       "first_name": "Kile Sotheby",
       "order_type": "Flight",
-      "submission_datetime": "2020-08-14 11:20:06",
+      "submission_datetime": "2020-08-12 04:04:04",
       "phone_number": "+1 (512) 929-9021",
       "provider_message": "status: failed - The reservation is currently unavailable."
     }

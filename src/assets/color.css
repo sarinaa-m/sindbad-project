@@ -1,4 +1,11 @@
 :root {
   --dark-blue: #1b4965;
   --white: #fff;
+  --success: '#4CAF50';
+  --failed: '#F44336';
+  --cancelled: '#FF9800';
+  --pending: '#FFEB3B';
+  --retry: '#2196F3';
+  --reject: '#9E9E9E';
+  --processing: '#00BCD4';
 }
