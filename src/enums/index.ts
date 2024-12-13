@@ -33,13 +33,10 @@ export enum StatusType {
     CONFIRMED = "confirmed",
     REJECTED = "rejected",
     PROCESSING = "processing"
-
 }
 
 export enum OrderType {
     FLIGHT = "flight",
     HOTEL = "Hotel",
     VISA = "Visa"
-
-
 }
