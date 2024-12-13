@@ -31,7 +31,3 @@
     },
   });
 </script>
-
-<style scoped>
-  /* Add any styles specific to the Home view here */
-</style>
