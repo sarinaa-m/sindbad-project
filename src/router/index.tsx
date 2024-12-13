@@ -1,5 +1,3 @@
-// router/index.ts
-import TableComponent from '../components/TableComponent.vue';
 import { createRouter, createWebHistory, RouteRecordRaw } from 'vue-router';
 
 
